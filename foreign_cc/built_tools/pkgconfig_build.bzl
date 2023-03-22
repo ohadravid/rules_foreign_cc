@@ -49,6 +49,7 @@ def _pkgconfig_tool_impl(ctx):
         "CFLAGS": _join_flags_list(ctx.workspace_name, cflags),
         "LD": absolute_ld,
         "LDFLAGS": _join_flags_list(ctx.workspace_name, ldflags),
+        "MAKE": make_data.path,
     })
     
     configure_env = " ".join(["%s=\"%s\"" % (key, value) for key, value in env.items()])
