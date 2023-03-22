@@ -1,19 +1,57 @@
 """ Rule for building pkg-config from source. """
 
+load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 load("//foreign_cc:defs.bzl", "make_variant", "runnable_binary")
 load(
     "//foreign_cc/built_tools/private:built_tools_framework.bzl",
     "FOREIGN_CC_BUILT_TOOLS_ATTRS",
     "FOREIGN_CC_BUILT_TOOLS_FRAGMENTS",
     "FOREIGN_CC_BUILT_TOOLS_HOST_FRAGMENTS",
+    "absolutize",
     "built_tool_rule_impl",
 )
 load("//toolchains/native_tools:tool_access.bzl", "get_make_data")
+load(
+    "//foreign_cc/private:cc_toolchain_util.bzl",
+    "get_env_vars",
+    "get_flags_info",
+    "get_tools_info",
+)
 
 def _pkgconfig_tool_impl(ctx):
     make_data = get_make_data(ctx)
+    
+    env = get_env_vars(ctx)
+    flags_info = get_flags_info(ctx)
+    tools_info = get_tools_info(ctx)
+    
+    cc_path = tools_info.cc
+    cflags = flags_info.cc
+    ld_path = tools_info.cxx_linker_executable
+    ldflags = flags_info.cxx_linker_executable
+    ar_path = tools_info.cxx_linker_static
+    frozen_arflags = flags_info.cxx_linker_static
+    
+    absolute_cc = absolutize(ctx.workspace_name, cc_path, True)
+    absolute_ld = absolutize(ctx.workspace_name, ld_path, True)
+    absolute_ar = absolutize(ctx.workspace_name, ar_path, True)
+    
+    arflags = [e for e in frozen_arflags]
+    if absolute_ar == "libtool" or absolute_ar.endswith("/libtool"):
+        arflags.append("-o")
+        
+    env.update({
+        "AR": absolute_ar,
+        "ARFLAGS": _join_flags_list(ctx.workspace_name, arflags),
+        "CC": absolute_cc,
+        "CFLAGS": _join_flags_list(ctx.workspace_name, cflags),
+        "LD": absolute_ld,
+        "LDFLAGS": _join_flags_list(ctx.workspace_name, ldflags),
+    })
+    
+    configure_env = " ".join(["%s=\"%s\"" % (key, value) for key, value in env.items()])
     script = [
-        "./configure  --with-internal-glib --prefix=$$INSTALLDIR$$",
+        "%s ./configure  --with-internal-glib --prefix=$$INSTALLDIR$$" % configure_env,
         "%s" % make_data.path,
         "%s install" % make_data.path,
     ]
@@ -109,3 +147,6 @@ def pkgconfig_tool(name, srcs, **kwargs):
         match_binary_name = True,
         tags = tags,
     )
+
+def _join_flags_list(workspace_name, flags):
+    return " ".join([absolutize(workspace_name, flag) for flag in flags])
