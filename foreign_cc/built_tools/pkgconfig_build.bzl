@@ -38,7 +38,8 @@ def _pkgconfig_tool_impl(ctx):
     
     arflags = [e for e in frozen_arflags]
     if absolute_ar == "libtool" or absolute_ar.endswith("/libtool"):
-        absolute_ar = "/Library/Developer/CommandLineTools/usr/bin/ar"
+        #absolute_ar = "/Library/Developer/CommandLineTools/usr/bin/ar"
+        absolute_ar = ""
         
     cflags.append("-fPIC")
     cflags.append("-Wno-int-conversion")
