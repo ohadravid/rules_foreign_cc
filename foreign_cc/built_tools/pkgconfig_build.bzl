@@ -38,7 +38,7 @@ def _pkgconfig_tool_impl(ctx):
     
     arflags = [e for e in frozen_arflags]
     if absolute_ar == "libtool" or absolute_ar.endswith("/libtool"):
-        #absolute_ar = "/Library/Developer/CommandLineTools/usr/bin/ar"
+        # MacOS workaround for libtool being detected instead of CommandLineTools's AR
         absolute_ar = ""
         
     cflags.append("-fPIC")
