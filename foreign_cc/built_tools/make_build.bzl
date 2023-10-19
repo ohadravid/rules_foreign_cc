@@ -70,9 +70,12 @@ def _make_tool_impl(ctx):
         arflags = [e for e in frozen_arflags]
         if absolute_ar == "libtool" or absolute_ar.endswith("/libtool"):
             arflags.append("-o")
-
+        
+        _joined_non_sysroot_ldflags = _join_flags_list(ctx.workspace_name, non_sysroot_ldflags)
+        
         if os_name(ctx) == "macos":
-            non_sysroot_ldflags += ["-undefined", "error"]
+            _joined_non_sysroot_ldflags = _joined_non_sysroot_ldflags.replace("-undefined dynamic_lookup", "")
+            _joined_non_sysroot_ldflags += " -undefined error"
 
         env.update({
             "AR": absolute_ar,
@@ -80,7 +83,7 @@ def _make_tool_impl(ctx):
             "CC": absolute_cc,
             "CFLAGS": _join_flags_list(ctx.workspace_name, non_sysroot_cflags),
             "LD": absolute_ld,
-            "LDFLAGS": _join_flags_list(ctx.workspace_name, non_sysroot_ldflags),
+            "LDFLAGS": _joined_non_sysroot_ldflags,
         })
 
         configure_env = " ".join(["%s=\"%s\"" % (key, value) for key, value in env.items()])
